@@ -1,0 +1,13 @@
+[package]
+name = "learning-vulkan"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ash = "0.38.0"
+ash-window = "0.13.0"
+tracing = "0.1.40"
+tracing-subscriber = "0.3.18"
+winit = "0.30.5"
