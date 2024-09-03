@@ -826,7 +826,6 @@ impl VulkanManager {
     }
 
     pub fn draw_frame(&self) {
-        tracing::info!("Beginning Frame");
         let fences = [self.in_flight_fence];
 
         unsafe { self.logical_device.wait_for_fences(&fences, true, u64::MAX) }
@@ -850,9 +849,7 @@ impl VulkanManager {
         }
         .expect("Failed to reset command buffers");
 
-        tracing::info!("Pre write");
         Self::write_command_buffer(self, image_index as usize);
-        tracing::info!("Post write");
 
         let wait_stages = [PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
         let wait_semaphores = [self.image_available_semaphore];
