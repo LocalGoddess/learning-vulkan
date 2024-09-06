@@ -1,5 +1,3 @@
-use std::ffi::CStr;
-
 use ash::vk::{
     self, DeviceCreateInfo, DeviceQueueCreateInfo, PhysicalDevice, PhysicalDeviceFeatures,
     PhysicalDeviceProperties, PhysicalDeviceType, QueueFlags,
@@ -200,12 +198,5 @@ impl VulkanLogicalDevice {
         extension_names: Vec<*const i8>,
     ) -> Self {
         todo!("Make VulkanLogicalDevice::create more generic then implement this")
-    }
-}
-
-impl Drop for VulkanLogicalDevice {
-    fn drop(&mut self) {
-        tracing::info!("Destroying Vulkan logical device");
-        unsafe { self.logical_device.destroy_device(None) };
     }
 }

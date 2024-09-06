@@ -123,9 +123,11 @@ impl Drop for VulkanInstance {
         tracing::info!("Destroying Vulkan instance");
         unsafe {
             if self.debug_utils_extension.is_some() {
-                drop(self.debug_utils_extension);
+                let debug_utils = self.debug_utils_extension.as_ref().unwrap();
+                debug_utils.loader.destroy_debug_utils_messenger(debug_utils.callback, None);
             }
-            drop(&mut self.logical_device);
+
+            self.logical_device.logical_device.destroy_device(None);
 
             self.vulkan_instance.destroy_instance(None);
         }
@@ -165,16 +167,6 @@ impl DebugUtilsExtension {
         } else {
             tracing::info!("Skipping creation of debug utils");
             None
-        }
-    }
-}
-
-impl Drop for DebugUtilsExtension {
-    fn drop(&mut self) {
-        tracing::info!("Destroying Vulkan debug utils extension callback");
-        unsafe {
-            self.loader
-                .destroy_debug_utils_messenger(self.callback, None);
         }
     }
 }
