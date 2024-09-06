@@ -124,7 +124,9 @@ impl Drop for VulkanInstance {
         unsafe {
             if self.debug_utils_extension.is_some() {
                 let debug_utils = self.debug_utils_extension.as_ref().unwrap();
-                debug_utils.loader.destroy_debug_utils_messenger(debug_utils.callback, None);
+                debug_utils
+                    .loader
+                    .destroy_debug_utils_messenger(debug_utils.callback, None);
             }
 
             self.logical_device.logical_device.destroy_device(None);
