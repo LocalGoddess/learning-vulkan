@@ -1,9 +1,9 @@
-use vulkan::VulkanManager;
+use vulkan::vulkan_instance::VulkanInstance;
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
     event_loop::EventLoop,
-    raw_window_handle::{HasDisplayHandle, HasWindowHandle},
+    raw_window_handle::HasDisplayHandle,
     window::{Window, WindowAttributes},
 };
 
@@ -12,36 +12,31 @@ pub mod vulkan;
 
 #[derive(Default)]
 pub struct AppState {
-    window: Option<Window>,
-    vulkan_manager: Option<VulkanManager>,
+    pub window: Option<Window>,
 }
 
 impl ApplicationHandler for AppState {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         tracing::info!("Creating window");
 
-        let window = event_loop
-            .create_window(WindowAttributes::default())
-            .expect("Failed to create window");
-        window.set_title("Learning Vulkan");
+        let attributes = WindowAttributes::default()
+            .with_title("Learning Vulkan")
+            .with_resizable(false);
 
-        self.window = Some(window);
-        self.vulkan_manager = Some(VulkanManager::new(
-            self.window.as_ref().unwrap().inner_size().width,
-            self.window.as_ref().unwrap().inner_size().height,
+        self.window = Some(
+            event_loop
+                .create_window(attributes)
+                .expect("Failed to create window"),
+        );
+
+        let _vulkan_instance = VulkanInstance::create(
             self.window
                 .as_ref()
                 .unwrap()
                 .display_handle()
-                .expect("Failed to get the raw display handle")
-                .as_raw(),
-            self.window
-                .as_ref()
                 .unwrap()
-                .window_handle()
-                .expect("Failed to get the raw window handle")
                 .as_raw(),
-        ));
+        );
     }
 
     fn window_event(
@@ -52,13 +47,11 @@ impl ApplicationHandler for AppState {
     ) {
         match event {
             WindowEvent::CloseRequested => {
-                tracing::info!("Close requested on {:?}", window_id);
-
+                tracing::info!("Close request recieved on window with {window_id:?}");
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
-                // Drawing
-                self.vulkan_manager.as_ref().unwrap().draw_frame();
+                // Draw frame here
                 self.window.as_ref().unwrap().request_redraw();
             }
             _ => {}
