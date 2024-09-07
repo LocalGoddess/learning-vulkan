@@ -147,6 +147,15 @@ pub struct VulkanLogicalDevice {
 
 impl VulkanLogicalDevice {
     pub fn create(instance: &ash::Instance, physical_device: &VulkanPhysicalDevice) -> Self {
+        let empty = [];
+        Self::create_compatability(instance, physical_device, &empty)
+    }
+
+    pub fn create_compatability(
+        instance: &ash::Instance,
+        physical_device: &VulkanPhysicalDevice,
+        extension_names: &[*const i8],
+    ) -> Self {
         tracing::info!("Creating a logical device");
 
         // Maybe asbtract away the queue creation from here?
@@ -161,9 +170,15 @@ impl VulkanLogicalDevice {
             .queue_priorities(&queue_priorities);
 
         let qcinfos = [logical_device_queue_create_info];
-        let logical_device_create_info = DeviceCreateInfo::default()
+        let mut logical_device_create_info = DeviceCreateInfo::default()
             .enabled_features(&physical_device.features)
             .queue_create_infos(&qcinfos);
+
+        if !extension_names.is_empty() {
+            tracing::info!("Using compatability settings");
+            logical_device_create_info =
+                logical_device_create_info.enabled_extension_names(extension_names);
+        }
 
         let logical_device = unsafe {
             instance.create_device(
@@ -190,13 +205,5 @@ impl VulkanLogicalDevice {
             logical_device,
             graphics_queue,
         }
-    }
-
-    pub fn create_compatability(
-        instance: &ash::Instance,
-        physical_device: &VulkanPhysicalDevice,
-        extension_names: Vec<*const i8>,
-    ) -> Self {
-        todo!("Make VulkanLogicalDevice::create more generic then implement this")
     }
 }
