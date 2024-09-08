@@ -16,7 +16,7 @@ use super::vulkan_device::VulkanPhysicalDevice;
 
 #[allow(dead_code)]
 pub struct VulkanInstance {
-    vulkan_library: ash::Entry,
+    pub vulkan_library: ash::Entry,
     pub vulkan_instance: ash::Instance,
 
     pub physical_device: VulkanPhysicalDevice,
