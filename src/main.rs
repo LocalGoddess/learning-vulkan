@@ -3,7 +3,6 @@ use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
     event_loop::EventLoop,
-    raw_window_handle::HasDisplayHandle,
     window::{Window, WindowAttributes},
 };
 
@@ -29,14 +28,7 @@ impl ApplicationHandler for AppState {
                 .expect("Failed to create window"),
         );
 
-        let _vulkan_instance = VulkanInstance::create(
-            self.window
-                .as_ref()
-                .unwrap()
-                .display_handle()
-                .unwrap()
-                .as_raw(),
-        );
+        let _vulkan_instance = VulkanInstance::create(self.window.as_ref().unwrap());
     }
 
     fn window_event(

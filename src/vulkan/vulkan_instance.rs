@@ -8,11 +8,11 @@ use ash::{
         InstanceCreateInfo,
     },
 };
-use winit::raw_window_handle::RawDisplayHandle;
+use winit::{raw_window_handle::HasDisplayHandle, window::Window};
 
 use crate::{util::str_to_cstr, vulkan::vulkan_device::VulkanLogicalDevice};
 
-use super::vulkan_device::VulkanPhysicalDevice;
+use super::{vulkan_device::VulkanPhysicalDevice, vulkan_surface::VulkanSurfaceExt};
 
 #[allow(dead_code)]
 pub struct VulkanInstance {
@@ -21,12 +21,13 @@ pub struct VulkanInstance {
 
     pub physical_device: VulkanPhysicalDevice,
     pub logical_device: VulkanLogicalDevice,
-
+    
+    pub surface_ext: VulkanSurfaceExt,
     debug_utils_extension: Option<DebugUtilsExtension>,
 }
 
 impl VulkanInstance {
-    pub fn create(display_handle: RawDisplayHandle) -> Self {
+    pub fn create(window: &Window) -> Self {
         tracing::info!("Creating Vulkan instance");
 
         let vulkan_library = unsafe { ash::Entry::load() }.expect("Failed to load vulkan library");
@@ -46,7 +47,7 @@ impl VulkanInstance {
 
         tracing::info!("Getting required extensions");
         let mut extension_names = if let Ok(extensions) =
-            ash_window::enumerate_required_extensions(display_handle)
+            ash_window::enumerate_required_extensions(window.display_handle().unwrap().as_raw())
         {
             extensions.to_vec()
         } else {
@@ -91,17 +92,20 @@ impl VulkanInstance {
 
         let debug_utils_extension = DebugUtilsExtension::create(&vulkan_library, &vulkan_instance);
 
-        let physical_device = VulkanPhysicalDevice::select(&vulkan_instance);
+        let surface_ext = VulkanSurfaceExt::create(&vulkan_library, &vulkan_instance, window);
+
+        let physical_device = VulkanPhysicalDevice::select(&vulkan_instance, &surface_ext);
         tracing::info!("Selected {:?}", physical_device.get_device_info());
 
         let logical_device = VulkanLogicalDevice::create(&vulkan_instance, &physical_device);
-
+        
         Self {
             vulkan_library,
             vulkan_instance,
             debug_utils_extension,
             physical_device,
             logical_device,
+            surface_ext
         }
     }
 
