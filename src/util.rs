@@ -5,10 +5,12 @@ use ash::vk::{
 
 use std::{ffi::CStr, fs::File, io::Read};
 
+#[inline]
 pub fn str_to_cstr(rusty: &str) -> &CStr {
     CStr::from_bytes_with_nul(rusty.as_bytes()).expect("Failed to convert rustaican str to c str")
 }
 
+#[inline]
 pub fn str_slice_to_cstr_vec<'a>(rusty: &'a [&'a str]) -> Vec<&'a CStr> {
     rusty.iter().map(|x| str_to_cstr(x)).collect()
 }

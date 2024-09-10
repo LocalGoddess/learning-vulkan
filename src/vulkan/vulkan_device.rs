@@ -5,7 +5,7 @@ use ash::vk::{
     PhysicalDeviceFeatures, PhysicalDeviceProperties, PhysicalDeviceType, QueueFlags,
 };
 
-use crate::util::{self, str_to_cstr};
+use crate::util::str_to_cstr;
 
 use super::vulkan_surface::VulkanSurfaceExt;
 
@@ -16,8 +16,8 @@ pub struct VulkanPhysicalDevice {
     pub queue_family_indicies: QueueFamilyIndicies,
 }
 
-pub fn get_device_extensions() -> Vec<*const i8> {
-    vec![ash::khr::swapchain::NAME.as_ptr()]
+pub fn get_device_extensions<'a>() -> Vec<&'a CStr> {
+    vec![ash::khr::swapchain::NAME]
 }
 
 impl VulkanPhysicalDevice {
@@ -36,7 +36,7 @@ impl VulkanPhysicalDevice {
                 selected_device = Some(physical_device);
             }
         }
-        
+
         if selected_device.is_none() {
             panic!("Could not find a suitable physical device");
         }
@@ -71,7 +71,11 @@ impl VulkanPhysicalDevice {
         )
     }
 
-    fn rate_device(instance: &ash::Instance, physical_device: PhysicalDevice, surface_ext: &VulkanSurfaceExt) -> u32 {
+    fn rate_device(
+        instance: &ash::Instance,
+        physical_device: PhysicalDevice,
+        surface_ext: &VulkanSurfaceExt,
+    ) -> u32 {
         let properties = unsafe { instance.get_physical_device_properties(physical_device) };
         let extension_properties =
             unsafe { instance.enumerate_device_extension_properties(physical_device) }
@@ -79,7 +83,13 @@ impl VulkanPhysicalDevice {
         let features = unsafe { instance.get_physical_device_features(physical_device) };
 
         let mut rating: u32 = 0u32;
-        if !Self::is_suitable(instance, physical_device, features, &extension_properties, surface_ext) {
+        if !Self::is_suitable(
+            instance,
+            physical_device,
+            features,
+            &extension_properties,
+            surface_ext,
+        ) {
             return rating;
         }
 
@@ -97,9 +107,10 @@ impl VulkanPhysicalDevice {
         physical_device: PhysicalDevice,
         features: PhysicalDeviceFeatures,
         extension_properties: &[ExtensionProperties],
-        surface_ext: &VulkanSurfaceExt
+        surface_ext: &VulkanSurfaceExt,
     ) -> bool {
-        let queue_family_indicies = QueueFamilyIndicies::get_all(instance, physical_device, surface_ext);
+        let queue_family_indicies =
+            QueueFamilyIndicies::get_all(instance, physical_device, surface_ext);
         dbg!(&queue_family_indicies);
 
         features.geometry_shader == ash::vk::TRUE
@@ -108,17 +119,20 @@ impl VulkanPhysicalDevice {
     }
 
     fn check_device_extension_support(extension_properties: &[ExtensionProperties]) -> bool {
-        let required_extensions = get_device_extensions();
-        
-        todo!("Fix this");
-        extension_properties.iter().all(|x| required_extensions.contains(&x.extension_name_as_c_str().unwrap().as_ptr())) 
+        let mut required_extensions = get_device_extensions();
+
+        for extension in extension_properties {
+            required_extensions.retain(|x| *x != extension.extension_name_as_c_str().unwrap());
+        }
+
+        required_extensions.is_empty()
     }
 }
 
 #[derive(Debug, Default)]
 pub struct QueueFamilyIndicies {
     pub graphics_index: Option<u32>,
-    pub present_queue: Option<u32>
+    pub present_queue: Option<u32>,
 }
 
 impl QueueFamilyIndicies {
@@ -139,7 +153,15 @@ impl QueueFamilyIndicies {
                 queue_family_indicies.graphics_index = Some(index as u32);
             }
 
-            if unsafe { surface_ext.loader.get_physical_device_surface_support(physical_device, index as u32, surface_ext.surface) }.unwrap() {
+            if unsafe {
+                surface_ext.loader.get_physical_device_surface_support(
+                    physical_device,
+                    index as u32,
+                    surface_ext.surface,
+                )
+            }
+            .unwrap()
+            {
                 tracing::info!("Found present queue family");
                 queue_family_indicies.present_queue = Some(index as u32);
             }
@@ -148,7 +170,10 @@ impl QueueFamilyIndicies {
         queue_family_indicies
     }
 
-    pub fn get_queue_create_infos<'a>(&'a self, priorities: &'a[f32]) -> Vec<DeviceQueueCreateInfo> {
+    pub fn get_queue_create_infos<'a>(
+        &'a self,
+        priorities: &'a [f32],
+    ) -> Vec<DeviceQueueCreateInfo> {
         let mut create_infos = Vec::new();
 
         let mut families = Vec::new();
@@ -159,8 +184,6 @@ impl QueueFamilyIndicies {
         if self.present_queue.is_some() {
             families.push(self.present_queue.unwrap());
         }
-        
-
 
         for family in families {
             let create_info = DeviceQueueCreateInfo::default()
@@ -182,7 +205,7 @@ pub struct VulkanLogicalDevice {
     pub logical_device: ash::Device,
 
     pub graphics_queue: vk::Queue,
-    pub present_queue: vk::Queue
+    pub present_queue: vk::Queue,
 }
 
 impl VulkanLogicalDevice {
@@ -200,13 +223,18 @@ impl VulkanLogicalDevice {
 
         // Maybe asbtract away the queue creation from here?
         let queue_priorities = [1f32];
-        let qcinfos = physical_device.queue_family_indicies.get_queue_create_infos(&queue_priorities);
+        let qcinfos = physical_device
+            .queue_family_indicies
+            .get_queue_create_infos(&queue_priorities);
 
         let extensions = get_device_extensions();
+
+        let extensions_raw: Vec<*const i8> = extensions.iter().map(|x| x.as_ptr()).collect();
+
         let mut logical_device_create_info = DeviceCreateInfo::default()
             .enabled_features(&physical_device.features)
             .queue_create_infos(&qcinfos)
-            .enabled_extension_names(&extensions);
+            .enabled_extension_names(&extensions_raw);
 
         if !extension_names.is_empty() {
             tracing::info!("Using compatability settings");
@@ -236,13 +264,16 @@ impl VulkanLogicalDevice {
         };
 
         let present_queue = unsafe {
-            logical_device.get_device_queue(physical_device.queue_family_indicies.present_queue.unwrap(), 0)
+            logical_device.get_device_queue(
+                physical_device.queue_family_indicies.present_queue.unwrap(),
+                0,
+            )
         };
 
         Self {
             logical_device,
             graphics_queue,
-            present_queue
+            present_queue,
         }
     }
 }

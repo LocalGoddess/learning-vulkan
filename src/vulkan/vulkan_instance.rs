@@ -21,7 +21,7 @@ pub struct VulkanInstance {
 
     pub physical_device: VulkanPhysicalDevice,
     pub logical_device: VulkanLogicalDevice,
-    
+
     pub surface_ext: VulkanSurfaceExt,
     debug_utils_extension: Option<DebugUtilsExtension>,
 }
@@ -98,14 +98,14 @@ impl VulkanInstance {
         tracing::info!("Selected {:?}", physical_device.get_device_info());
 
         let logical_device = VulkanLogicalDevice::create(&vulkan_instance, &physical_device);
-        
+
         Self {
             vulkan_library,
             vulkan_instance,
             debug_utils_extension,
             physical_device,
             logical_device,
-            surface_ext
+            surface_ext,
         }
     }
 

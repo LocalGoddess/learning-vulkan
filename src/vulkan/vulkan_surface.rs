@@ -18,8 +18,7 @@ impl VulkanSurfaceExt {
             .window_handle()
             .expect("Failed to get the window's window handle");
 
-        let loader =
-            ash::khr::surface::Instance::new(library, instance);
+        let loader = ash::khr::surface::Instance::new(library, instance);
         let surface = unsafe {
             ash_window::create_surface(
                 library,
