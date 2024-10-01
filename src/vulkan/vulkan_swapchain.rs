@@ -1,7 +1,6 @@
-use ash::vk::{
-    self, ColorSpaceKHR, CompositeAlphaFlagsKHR, Extent2D, ImageUsageFlags, PresentModeKHR,
-    SharingMode, SurfaceCapabilitiesKHR, SurfaceFormatKHR, SwapchainCreateInfoKHR,
-};
+use ash::{khr::swapchain, vk::{
+    self, ColorSpaceKHR, CompositeAlphaFlagsKHR, Extent2D, Image, ImageUsageFlags, PresentModeKHR, SharingMode, SurfaceCapabilitiesKHR, SurfaceFormatKHR, SwapchainCreateInfoKHR
+}};
 use winit::window::Window;
 
 use super::{
@@ -15,10 +14,15 @@ pub struct VulkanSwapchain<'a> {
     pub logical_device: &'a VulkanLogicalDevice,
     pub surface_ext: &'a VulkanSurfaceExt,
 
+    pub loader: swapchain::Device,
     pub handle: vk::SwapchainKHR,
-    pub extent: Extent2D,
 
-    support_details: SwapchainSupportDetails,
+    pub extent: Extent2D,
+    pub image_format: SurfaceFormatKHR,
+
+    pub images: Vec<Image>,
+
+    support_details: SwapchainSupportDetails, // Might delete
 }
 
 impl<'a> VulkanSwapchain<'a> {
@@ -37,17 +41,18 @@ impl<'a> VulkanSwapchain<'a> {
         }
 
         let surface_format = support_details.choose_surface_format();
+        let extent = support_details.choose_extent(window);
 
         let mut create_info = SwapchainCreateInfoKHR::default()
             .surface(instance.surface_ext.surface)
             .min_image_count(image_count)
             .image_format(surface_format.format)
             .image_color_space(surface_format.color_space)
-            .image_extent(support_details.choose_extent(window))
+            .image_extent(extent)
             .image_array_layers(1)
             .image_usage(ImageUsageFlags::COLOR_ATTACHMENT);
 
-        let queue_family_indicies = instance.physical_device.queue_family_indicies;
+        let queue_family_indicies = &instance.physical_device.queue_family_indicies;
         let indicies = [
             queue_family_indicies.graphics_index.unwrap(),
             queue_family_indicies.present_queue.unwrap(),
@@ -72,13 +77,22 @@ impl<'a> VulkanSwapchain<'a> {
         if previous_swapchain.is_some() {
             create_info = create_info.old_swapchain(previous_swapchain.unwrap().handle);
         }
-
-        todo!("Finish this");
+    
+        let swapchain_loader = swapchain::Device::new(&instance.vulkan_instance, &instance.logical_device.logical_device);
+        let swapchain = unsafe { swapchain_loader.create_swapchain(&create_info, None) }.expect("Failed to create Vulkan swapchain");
+        
+        let images = unsafe { swapchain_loader.get_swapchain_images(swapchain) }.expect("Failed to retrieve swapchain images");
 
         Self {
             instance,
             logical_device: &instance.logical_device,
             surface_ext: &instance.surface_ext,
+            extent,
+            image_format: surface_format,
+            loader: swapchain_loader,
+            handle: swapchain,
+            images,
+            support_details
         }
     }
 }
