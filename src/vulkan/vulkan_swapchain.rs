@@ -1,5 +1,5 @@
 use ash::{khr::swapchain, vk::{
-    self, ColorSpaceKHR, CompositeAlphaFlagsKHR, Extent2D, Image, ImageUsageFlags, PresentModeKHR, SharingMode, SurfaceCapabilitiesKHR, SurfaceFormatKHR, SwapchainCreateInfoKHR
+    self, ColorSpaceKHR, ComponentSwizzle, CompositeAlphaFlagsKHR, Extent2D, Image, ImageAspectFlags, ImageUsageFlags, ImageView, ImageViewCreateInfo, ImageViewType, PresentModeKHR, SharingMode, SurfaceCapabilitiesKHR, SurfaceFormatKHR, SwapchainCreateInfoKHR
 }};
 use winit::window::Window;
 
@@ -21,6 +21,7 @@ pub struct VulkanSwapchain<'a> {
     pub image_format: SurfaceFormatKHR,
 
     pub images: Vec<Image>,
+    pub image_views: Vec<ImageView>,
 
     support_details: SwapchainSupportDetails, // Might delete
 }
@@ -82,6 +83,24 @@ impl<'a> VulkanSwapchain<'a> {
         let swapchain = unsafe { swapchain_loader.create_swapchain(&create_info, None) }.expect("Failed to create Vulkan swapchain");
         
         let images = unsafe { swapchain_loader.get_swapchain_images(swapchain) }.expect("Failed to retrieve swapchain images");
+        let mut image_views: Vec<ImageView> = Vec::new();
+        
+        for image in &images {
+            let image_view_create_info = ImageViewCreateInfo::default()
+                .image(*image)
+                .view_type(ImageViewType::TYPE_2D)
+                .format(surface_format.format)
+                .components(
+                    vk::ComponentMapping { r: ComponentSwizzle::IDENTITY, g: ComponentSwizzle::IDENTITY, b: ComponentSwizzle::IDENTITY, a: ComponentSwizzle::IDENTITY }
+                    )
+                .subresource_range(
+                    vk::ImageSubresourceRange { aspect_mask: ImageAspectFlags::COLOR, base_mip_level: 0, level_count: 1, base_array_layer: 0, layer_count: 1 }
+                    );
+
+            let view = unsafe { instance.logical_device.logical_device.create_image_view(&image_view_create_info, None) }.expect("Failed to create image view");
+            image_views.push(view);
+
+        }
 
         Self {
             instance,
@@ -92,7 +111,14 @@ impl<'a> VulkanSwapchain<'a> {
             loader: swapchain_loader,
             handle: swapchain,
             images,
+            image_views,
             support_details
+        }
+    }
+
+    pub fn destroy(&mut self) {
+        for view in &self.image_views {
+            unsafe { self.instance.logical_device.logical_device.destroy_image_view(*view, None) };
         }
     }
 }
