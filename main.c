@@ -1,34 +1,19 @@
-#include <GLFW/glfw3.h>
-#include <vulkan/vulkan_core.h>
-
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
+
+#include <GLFW/glfw3.h>
+
+#include "state.h"
 
 int main(void) {
-        if (!glfwInit()) {
-                printf("error: failed to inititalize glfw\n");
-                exit(1);
-        }
-        
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        GLFWwindow *window = glfwCreateWindow(800, 600, "Vulkan Window", NULL,
-                        NULL);
-        if (window == NULL) {
-                printf("error: failed to create window\n");
-                exit(1);
-        }
+        struct app_state state = app_init();
 
-        uint32_t extension_count = 0;
-        vkEnumerateInstanceExtensionProperties(NULL, &extension_count, NULL);
-        
-        glfwMakeContextCurrent(window);
-        while (!glfwWindowShouldClose(window)) {
+        while (!glfwWindowShouldClose(state.window)) {
+                if (glfwGetTime() >= 3.0) {
+                        break;
+                }
                 glfwPollEvents();
         }
-
-        glfwDestroyWindow(window);
-        glfwTerminate();
+        app_cleanup(state);
 
         return 0;
 }
