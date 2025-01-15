@@ -9,8 +9,16 @@
 #include "util.h"
 #include "vulkan_extensions.h"
 
+#ifndef DEBUG
+static const char *vk_extension_layers[0];
+static const uint32_t vk_extension_layer_count = 0; 
+#else
+static const char *vk_extension_layers[1] = { "VK_LAYER_KHRONOS_validation" };
+static const uint32_t vk_extension_layer_count = 1;
+#endif
+
 VkInstance create_vk_instance(void);
-uint32_t check_layer_support(const char **layers, size_t layer_count);
+uint32_t check_layer_support(const char **layers, uint32_t layer_count);
 const char **get_required_extensions(uint32_t *count);
 
 VkDebugUtilsMessengerEXT create_debug_extension(VkInstance vk_instance);
@@ -80,16 +88,7 @@ VkInstance create_vk_instance(void) {
         const char **extensions;
         extensions = get_required_extensions(&extension_count);
         
-        size_t vk_layers_count;
-#ifdef DEBUG
-        vk_layers_count = 1;
-        const char *vk_layers[1] = { "VK_LAYER_KHRONOS_validation" };
-#else
-        vk_layers_count = 0;
-        const char *vk_layers[0];
-#endif
-
-        if (!check_layer_support(vk_layers, vk_layers_count)) {
+        if (!check_layer_support(vk_extension_layers, vk_extension_layer_count)) {
                 printf("error: requested layers not available\n");
                 exit(1);
         }
@@ -97,8 +96,8 @@ VkInstance create_vk_instance(void) {
 
         create_info.ppEnabledExtensionNames = extensions;
         create_info.enabledExtensionCount = extension_count;
-        create_info.ppEnabledLayerNames = vk_layers;
-        create_info.enabledLayerCount = vk_layers_count;
+        create_info.ppEnabledLayerNames = vk_extension_layers;
+        create_info.enabledLayerCount = vk_extension_layer_count;
         
         VkInstance vk_instance;
         if (vkCreateInstance(&create_info, NULL, &vk_instance) != VK_SUCCESS) {
@@ -110,7 +109,7 @@ VkInstance create_vk_instance(void) {
         return vk_instance;
 }
 
-uint32_t check_layer_support(const char **layers, size_t layer_count) {
+uint32_t check_layer_support(const char **layers, uint32_t layer_count) {
         uint32_t av_layer_count;
         vkEnumerateInstanceLayerProperties(&av_layer_count, NULL);
 
