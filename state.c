@@ -8,6 +8,8 @@
 
 #include "util.h"
 #include "vulkan_extensions.h"
+#include "device.h"
+#include <vulkan/vulkan_core.h>
 
 #ifndef DEBUG
 static const char *vk_extension_layers[0];
@@ -53,9 +55,21 @@ struct app_state app_init(void) {
         VkDebugUtilsMessengerEXT extension = create_debug_extension(vk_instance);
         state.vk_debug_messenger = extension;
 #endif
+        
+        VkPhysicalDevice pdevice = physical_device_find_best(vk_instance);
+        struct queue_family_indices family_indices = queue_family_find(pdevice);
+
+        VkDevice ldevice = logical_device_create(pdevice, vk_extension_layers,
+                        vk_extension_layer_count);
+        
+        VkQueue graphics_queue;
+        vkGetDeviceQueue(ldevice, family_indices.graphics, 0, &graphics_queue); 
 
         state.window = window;
         state.vk_instance = vk_instance;
+        state.phyisical_device = pdevice;
+        state.logical_device = ldevice;
+        state.graphics_queue = graphics_queue;
         return state;
 }
 

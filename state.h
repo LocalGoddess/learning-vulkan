@@ -7,9 +7,16 @@
 #include <vulkan/vulkan.h>
 
 struct app_state {
-        VkInstance vk_instance;
-        VkDebugUtilsMessengerEXT vk_debug_messenger;
         GLFWwindow *window;
+
+        VkInstance vk_instance;
+        
+        VkPhysicalDevice phyisical_device;
+        VkDevice logical_device;
+
+        VkQueue graphics_queue;
+
+        VkDebugUtilsMessengerEXT vk_debug_messenger;
 };
 
 struct app_state app_init(void);

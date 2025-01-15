@@ -12,4 +12,7 @@ int32_t queue_family_is_complete(struct queue_family_indices family_indices);
 
 VkPhysicalDevice physical_device_find_best(VkInstance instance);
 
+VkDevice logical_device_create(VkPhysicalDevice device, const char **layers,
+                const uint32_t layer_count);
+
 #endif

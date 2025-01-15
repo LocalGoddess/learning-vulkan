@@ -106,3 +106,37 @@ int32_t physical_device_rate(VkPhysicalDeviceProperties props,
                                                    // better
         return score;
 }
+
+VkDevice logical_device_create(VkPhysicalDevice pdevice, const char **layers,
+                const uint32_t layer_count)
+{       
+        VkPhysicalDeviceFeatures features;
+        vkGetPhysicalDeviceFeatures(pdevice, &features);
+
+        struct queue_family_indices family_indices = queue_family_find(pdevice);
+        
+        VkDeviceQueueCreateInfo queue_create_info = { 0 };
+        queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queue_create_info.queueFamilyIndex = family_indices.graphics;
+        queue_create_info.queueCount = 1;
+
+        float queue_priority = 1.0f;
+        queue_create_info.pQueuePriorities = &queue_priority;
+
+        VkDeviceCreateInfo ldevice_create_info = { 0 };
+        ldevice_create_info.pQueueCreateInfos = &queue_create_info;
+        ldevice_create_info.queueCreateInfoCount = 1;
+        ldevice_create_info.pEnabledFeatures = &features;
+        ldevice_create_info.ppEnabledLayerNames = layers;
+        ldevice_create_info.enabledLayerCount = layer_count;
+
+        VkDevice ldevice;
+        if (vkCreateDevice(pdevice, &ldevice_create_info, NULL, &ldevice)
+                        != VK_SUCCESS) {
+                printf("error: failed to create logical device\n");
+                exit(1);
+        }       
+        
+        return ldevice;
+}
+
